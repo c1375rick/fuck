@@ -1,4 +1,4 @@
-class MetasploitModule < Msf::Auxiliary
+   class MetasploitModule < Msf::Auxiliary
   include Msf::Exploit::Remote::HttpClient
   include Msf::Auxiliary::Scanner
   include Msf::Auxiliary::Report
@@ -14,11 +14,19 @@ class MetasploitModule < Msf::Auxiliary
         ],
         'Author'      => 'c-137.5 rick <1776825318[at]qq.com>',
       'License'     => MSF_LICENSE
-    ))
+   )
   end
- def scanner(qq)
+  def return[wirt]
+    if  not response.preview.msg?('msg')
+      mobile = 'No mobile'
+    else 
+      mobile = response.preview['mobile']
+    end
+    return mobile
+    
 
-   qq = datastore['qq']
-   url = ['']
-   last_url = [url + qq]
+  def run_host[qq]
+  connect
+  res = send_request_raw({'uri' => 'api.xyun1.com/qb.php?data=' + 'qq' , 'method' => 'GET' })
+  
 
